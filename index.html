@@ -19,7 +19,9 @@
         h1 {margin-bottom:10px;}
         .container {display:flex;gap:20px;}
         .lista {width:30%;}
-        .lista button {width:100%;padding:10px;margin-bottom:6px;background:#1e293b;color:white;border:none;cursor:pointer;text-align:left;border-radius:4px;}
+        .lista details summary {background:#1e293b;padding:5px;border-radius:4px;cursor:pointer;margin-bottom:4px;}
+        .lista details details summary {background:#334155;}
+        .lista button {width:calc(100% - 30px);padding:8px;margin-bottom:4px;margin-left:15px;background:#1e293b;color:white;border:none;cursor:pointer;text-align:left;border-radius:4px;}
         .lista button:hover {background:#334155;}
         .lista button.feito {background:#166534;}
         .detalhe {width:70%;background:#020617;padding:20px;border-radius:8px;}
@@ -64,12 +66,51 @@ fetch("problemas.json")
 function renderLista() {
     const lista = document.getElementById("lista");
     lista.innerHTML = "";
+
+    let groups = {};
     problemas.forEach(p => {
-        const btn = document.createElement("button");
-        btn.textContent = p.id;
-        if (feitos[p.id]) btn.classList.add("feito");
-        btn.onclick = () => abrirProblema(p);
-        lista.appendChild(btn);
+        let parts = p.id.split('_');
+        let year = parts[1];
+        let subject_key = parts[2];
+        let subject = subject_key.replace(/_/g, ' ');
+        if (!groups[year]) groups[year] = {};
+        if (!groups[year][subject_key]) groups[year][subject_key] = { display: subject, probs: [] };
+        groups[year][subject_key].probs.push(p);
+    });
+
+    let years = Object.keys(groups).sort((a,b) => b - a); // descending for recent first
+
+    years.forEach(year => {
+        let yearDet = document.createElement('details');
+        let yearSum = document.createElement('summary');
+        yearSum.textContent = `Ano ${year}`;
+        yearDet.appendChild(yearSum);
+
+        let subjects = Object.keys(groups[year]).sort();
+        subjects.forEach(subject_key => {
+            let subjDet = document.createElement('details');
+            let subjSum = document.createElement('summary');
+            subjSum.textContent = groups[year][subject_key].display.charAt(0).toUpperCase() + groups[year][subject_key].display.slice(1);
+            subjDet.appendChild(subjSum);
+
+            let probs = groups[year][subject_key].probs.sort((a,b) => {
+                let pa = parseInt(a.id.split('_')[3].substring(1));
+                let pb = parseInt(b.id.split('_')[3].substring(1));
+                return pa - pb;
+            });
+
+            probs.forEach(p => {
+                const btn = document.createElement("button");
+                btn.textContent = p.id.split('_')[3].toUpperCase();
+                if (feitos[p.id]) btn.classList.add("feito");
+                btn.onclick = () => abrirProblema(p);
+                subjDet.appendChild(btn);
+            });
+
+            yearDet.appendChild(subjDet);
+        });
+
+        lista.appendChild(yearDet);
     });
 }
 
@@ -77,6 +118,7 @@ function abrirProblema(p) {
     atual = p;
     document.getElementById("titulo").textContent = p.id;
     document.getElementById("enunciado").innerHTML = p.enunciado || "Sem enunciado";
+    document.getElementById("feitoBtn").textContent = feitos[p.id] ? "Desmarcar" : "Marcar como feito";
     document.getElementById("feitoBtn").style.display = "inline-block";
     document.getElementById("solucaoBtn").style.display = p.solucao ? "inline-block" : "none";
     document.getElementById("solucao").style.display = "none";
@@ -89,6 +131,7 @@ document.getElementById("feitoBtn").onclick = () => {
     feitos[atual.id] = !feitos[atual.id];
     localStorage.setItem("imo-feitos", JSON.stringify(feitos));
     renderLista();
+    document.getElementById("feitoBtn").textContent = feitos[atual.id] ? "Desmarcar" : "Marcar como feito";
 };
 
 document.getElementById("solucaoBtn").onclick = () => {
