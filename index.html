@@ -127,7 +127,7 @@ function renderLista() {
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
-        detAno.open = false; // NENHUM ano aberto
+        detAno.open = false;
 
         const sumAno = document.createElement("summary");
         sumAno.textContent = `IMO ${ano}`;
@@ -199,9 +199,11 @@ function abrirProblema(p) {
     document.getElementById("solucao").style.display = "none";
     document.getElementById("solucao").innerHTML = "";
 
-    // Garante que o MathJax renderiza APÓS o HTML estar no DOM
-    MathJax.typesetClear([enunciadoDiv]);
-    MathJax.typesetPromise([enunciadoDiv]).catch(() => {}); // renderiza só o enunciado
+    // Garante render após DOM update
+    setTimeout(() => {
+        MathJax.typesetClear([enunciadoDiv]);
+        MathJax.typesetPromise([enunciadoDiv]).catch(() => {});
+    }, 0);
 }
 
 document.getElementById("feitoBtn").onclick = () => {
@@ -216,8 +218,10 @@ document.getElementById("solucaoBtn").onclick = () => {
     const solDiv = document.getElementById("solucao");
     solDiv.innerHTML = atual.solucao || "Solução não disponível";
     solDiv.style.display = "block";
-    MathJax.typesetClear([solDiv]);
-    MathJax.typesetPromise([solDiv]).catch(() => {});
+    setTimeout(() => {
+        MathJax.typesetClear([solDiv]);
+        MathJax.typesetPromise([solDiv]).catch(() => {});
+    }, 0);
 };
 </script>
 </body>
