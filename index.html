@@ -10,11 +10,15 @@
         h1 {margin-bottom:10px;}
         .container {display:flex;gap:20px;}
         .lista {width:30%;}
-        .lista button {width:100%;padding:10px;margin-bottom:6px;background:#1e293b;color:white;border:none;cursor:pointer;text-align:left;}
+        .lista button {width:100%;padding:10px;margin-bottom:6px;background:#1e293b;color:white;border:none;cursor:pointer;text-align:left;border-radius:4px;}
+        .lista button:hover {background:#334155;}
         .lista button.feito {background:#166534;}
-        .detalhe {width:70%;background:#020617;padding:15px;border-radius:6px;}
-        .feito-btn, .solucao-btn {margin-top:15px;padding:10px 15px;background:#2563eb;border:none;color:white;cursor:pointer;margin-right:10px;}
-        #solucao {margin-top:15px;display:none;}
+        .detalhe {width:70%;background:#020617;padding:20px;border-radius:8px;}
+        #enunciado {line-height:1.6;font-size:1.1em;}
+        .botoes {margin-top:20px;}
+        .feito-btn, .solucao-btn {padding:10px 18px;background:#2563eb;border:none;color:white;cursor:pointer;border-radius:4px;margin-right:12px;}
+        .feito-btn:hover, .solucao-btn:hover {background:#3b82f6;}
+        #solucao {margin-top:25px;padding:15px;background:#0f172a;border-radius:6px;display:none;}
     </style>
 </head>
 <body>
@@ -24,7 +28,7 @@
     <div class="detalhe">
         <h2 id="titulo">Selecione um problema</h2>
         <div id="enunciado"></div>
-        <div>
+        <div class="botoes">
             <button class="feito-btn" id="feitoBtn" style="display:none;">Marcar como feito</button>
             <button class="solucao-btn" id="solucaoBtn" style="display:none;">Mostrar solução</button>
         </div>
@@ -34,7 +38,7 @@
 
 <script>
 let problemas = [];
-let feitos = JSON.parse(localStorage.getItem("imo-feitos") || "{}");
+let feitos = JSON.parse(localStorage.getItem("imo-feitos-imo") || "{}");
 let atual = null;
 
 fetch("problemas.json")
@@ -43,7 +47,10 @@ fetch("problemas.json")
         problemas = data;
         renderLista();
     })
-    .catch(() => alert("Arquivo problemas.json não encontrado"));
+    .catch(err => {
+        document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>Erro ao carregar problemas.json</p>";
+        console.error(err);
+    });
 
 function renderLista() {
     const lista = document.getElementById("lista");
@@ -57,29 +64,42 @@ function renderLista() {
     });
 }
 
+function converterLatex(texto) {
+    if (!texto) return "";
+    // $$...$$ → \[...\]
+    texto = texto.replace(/\$\$([\s\S]*?)\$\$/g, '\\[$1\\]');
+    // $...$ → \(...\)
+    texto = texto.replace(/\$([^$]+)\$/g, '\\($1\\)');
+    return texto;
+}
+
 function abrirProblema(p) {
     atual = p;
     document.getElementById("titulo").textContent = p.id;
-    document.getElementById("enunciado").innerHTML = p.enunciado || "Sem enunciado";
+
+    const textoConvertido = converterLatex(p.enunciado || "Sem enunciado");
+    document.getElementById("enunciado").innerHTML = textoConvertido;
+
     document.getElementById("feitoBtn").style.display = "inline-block";
     document.getElementById("solucaoBtn").style.display = p.solucao ? "inline-block" : "none";
     document.getElementById("solucao").style.display = "none";
-    MathJax.typesetPromise();
+    document.getElementById("solucao").innerHTML = "";
+
+    MathJax.typesetPromise().catch(err => console.error(err));
 }
 
 document.getElementById("feitoBtn").onclick = () => {
     if (!atual) return;
     feitos[atual.id] = !feitos[atual.id]; // toggle
-    localStorage.setItem("imo-feitos", JSON.stringify(feitos));
+    localStorage.setItem("imo-feitos-imo", JSON.stringify(feitos));
     renderLista();
-    document.querySelector(`button[data-id="${atual.id}"]`)?.classList.toggle("feito", feitos[atual.id]);
 };
 
 document.getElementById("solucaoBtn").onclick = () => {
     const sol = document.getElementById("solucao");
-    sol.innerHTML = atual.solucao;
+    sol.innerHTML = converterLatex(atual.solucao || "Solução não disponível");
     sol.style.display = "block";
-    MathJax.typesetPromise();
+    MathJax.typesetPromise().catch(err => console.error(err));
 };
 </script>
 </body>
