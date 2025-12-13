@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <title>Lista de Problemas IMO</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']],
+          processEscapes: true
+        }
+      };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {font-family: Arial, sans-serif;background:#0f172a;color:#e5e7eb;margin:0;padding:20px;}
@@ -38,7 +47,7 @@
 
 <script>
 let problemas = [];
-let feitos = JSON.parse(localStorage.getItem("imo-feitos-imo") || "{}");
+let feitos = JSON.parse(localStorage.getItem("imo-feitos") || "{}");
 let atual = null;
 
 fetch("problemas.json")
@@ -64,40 +73,27 @@ function renderLista() {
     });
 }
 
-function converterLatex(texto) {
-    if (!texto) return "";
-    // $$...$$ → \[...\]
-    texto = texto.replace(/\$\$([\s\S]*?)\$\$/g, '\\[$1\\]');
-    // $...$ → \(...\)
-    texto = texto.replace(/\$([^$]+)\$/g, '\\($1\\)');
-    return texto;
-}
-
 function abrirProblema(p) {
     atual = p;
     document.getElementById("titulo").textContent = p.id;
-
-    const textoConvertido = converterLatex(p.enunciado || "Sem enunciado");
-    document.getElementById("enunciado").innerHTML = textoConvertido;
-
+    document.getElementById("enunciado").innerHTML = p.enunciado || "Sem enunciado";
     document.getElementById("feitoBtn").style.display = "inline-block";
     document.getElementById("solucaoBtn").style.display = p.solucao ? "inline-block" : "none";
     document.getElementById("solucao").style.display = "none";
     document.getElementById("solucao").innerHTML = "";
-
     MathJax.typesetPromise().catch(err => console.error(err));
 }
 
 document.getElementById("feitoBtn").onclick = () => {
     if (!atual) return;
-    feitos[atual.id] = !feitos[atual.id]; // toggle
-    localStorage.setItem("imo-feitos-imo", JSON.stringify(feitos));
+    feitos[atual.id] = !feitos[atual.id];
+    localStorage.setItem("imo-feitos", JSON.stringify(feitos));
     renderLista();
 };
 
 document.getElementById("solucaoBtn").onclick = () => {
     const sol = document.getElementById("solucao");
-    sol.innerHTML = converterLatex(atual.solucao || "Solução não disponível");
+    sol.innerHTML = atual.solucao || "Solução não disponível";
     sol.style.display = "block";
     MathJax.typesetPromise().catch(err => console.error(err));
 };
