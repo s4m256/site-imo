@@ -1,94 +1,126 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Lista de Problemas IMO</title>
-<style>
-body { font-family: Arial,sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:20px; }
-h1{ margin-bottom:10px; }
-.container{ display:flex; gap:20px; }
-.lista{ width:30%; }
-.lista button{ width:100%; padding:10px; margin-bottom:6px; background:#1e293b; color:white; border:none; cursor:pointer; text-align:left; }
-.lista button.feito{ background:#166534; }
-.detalhe{ width:70%; background:#020617; padding:15px; border-radius:6px; }
-.feito-btn,.solucao-btn{ margin-top:15px; padding:10px 15px; background:#2563eb; border:none; color:white; cursor:pointer; }
-.solucao{ display:none; margin-top:10px; background:#1e293b; padding:10px; border-radius:6px; }
-</style>
+    <meta charset="UTF-8">
+    <title>Lista de Problemas IMO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .lista {
+            width: 30%;
+        }
+        .lista button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+        .lista button.feito {
+            background: #166534;
+        }
+        .detalhe {
+            width: 70%;
+            background: #020617;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .solucao-btn {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #2563eb;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .solucao {
+            margin-top: 10px;
+            display: none;
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
 
-<!-- MathJax -->
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
 </head>
 <body>
 
 <h1>Lista de Problemas IMO</h1>
 
 <div class="container">
-  <div class="lista" id="lista"></div>
+    <div class="lista" id="lista"></div>
 
-  <div class="detalhe">
-    <h2 id="titulo">Selecione um problema</h2>
-    <div id="enunciado"></div>
-    <button class="feito-btn" id="feitoBtn" style="display:none;">Marcar como feito</button>
-    <button class="solucao-btn" id="solucaoBtn" style="display:none;">Mostrar solução</button>
-    <div id="solucao" class="solucao"></div>
-  </div>
+    <div class="detalhe">
+        <h2 id="titulo">Selecione um problema</h2>
+        <div id="enunciado"></div>
+        <button class="solucao-btn" id="solucaoBtn" style="display:none;">Mostrar Solução</button>
+        <div class="solucao" id="solucao"></div>
+    </div>
 </div>
 
 <script>
-async function carregarProblemas() {
-    const resp = await fetch("problemas.json");
-    const problemas = await resp.json();
+let problemas = [];
+let atual = null;
 
-    const lista = document.getElementById("lista");
-    const titulo = document.getElementById("titulo");
-    const enunciado = document.getElementById("enunciado");
-    const feitoBtn = document.getElementById("feitoBtn");
-    const solucaoBtn = document.getElementById("solucaoBtn");
-    const solucaoDiv = document.getElementById("solucao");
-
-    const feitos = JSON.parse(localStorage.getItem("feitos")) || {};
-    let atual = null;
-
-    function renderLista() {
-        lista.innerHTML = "";
-        problemas.forEach(p => {
-            const btn = document.createElement("button");
-            btn.textContent = p.id;
-            if (feitos[p.id]) btn.classList.add("feito");
-            btn.onclick = () => abrirProblema(p);
-            lista.appendChild(btn);
-        });
-    }
-
-    function abrirProblema(p) {
-        atual = p;
-        titulo.textContent = p.id;
-        enunciado.innerHTML = p.enunciado;
-        solucaoDiv.style.display = "none";
-        solucaoDiv.innerHTML = "";
-        feitoBtn.style.display = "inline-block";
-        solucaoBtn.style.display = "inline-block";
-        MathJax.typesetPromise();
-    }
-
-    feitoBtn.onclick = () => {
-        if (!atual) return;
-        feitos[atual.id] = true;
-        localStorage.setItem("feitos", JSON.stringify(feitos));
+// Carrega JSON
+fetch("problemas.json")
+    .then(res => res.json())
+    .then(data => {
+        problemas = data;
         renderLista();
-    }
+    });
 
-    solucaoBtn.onclick = () => {
-        if (!atual) return;
-        solucaoDiv.innerHTML = atual.solucao;
-        solucaoDiv.style.display = "block";
-        MathJax.typesetPromise();
-    }
-
-    renderLista();
+// Lista de problemas
+function renderLista() {
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+    problemas.forEach(p => {
+        const btn = document.createElement("button");
+        btn.textContent = p.id;
+        btn.onclick = () => abrirProblema(p);
+        lista.appendChild(btn);
+    });
 }
 
-carregarProblemas();
+// Mostra problema selecionado
+function abrirProblema(p) {
+    atual = p;
+    document.getElementById("titulo").textContent = p.id;
+    document.getElementById("enunciado").textContent = p.enunciado;
+    document.getElementById("solucaoBtn").style.display = p.solucao ? "inline-block" : "none";
+    document.getElementById("solucao").style.display = "none";
+
+    // Renderiza LaTeX no enunciado
+    MathJax.typesetPromise([document.getElementById("enunciado")]);
+}
+
+// Mostrar/ocultar solução
+document.getElementById("solucaoBtn").onclick = () => {
+    const sol = document.getElementById("solucao");
+    sol.textContent = atual.solucao;
+    sol.style.display = "block";
+    MathJax.typesetPromise([sol]);
+};
 </script>
 
 </body>
