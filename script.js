@@ -1,39 +1,43 @@
-const listaDiv = document.getElementById("lista");
+const lista = document.getElementById("lista");
 const titulo = document.getElementById("titulo");
 const enunciado = document.getElementById("enunciado");
-const mostrarSolBtn = document.getElementById("mostrarSolBtn");
-const solucao = document.getElementById("solucao");
+const solucaoEl = document.getElementById("solucao");
+const solucaoBtn = document.getElementById("solucaoBtn");
 
 let problemas = [];
 let atual = null;
 
+// Carregar problemas do JSON
 fetch("problemas.json")
   .then(res => res.json())
   .then(data => {
     problemas = data;
     renderLista();
-  });
+  })
+  .catch(err => console.error("Erro ao carregar problemas.json:", err));
 
 function renderLista() {
-  listaDiv.innerHTML = "";
+  lista.innerHTML = "";
   problemas.forEach(p => {
     const btn = document.createElement("button");
-    btn.textContent = p.title;
+    btn.textContent = p.id;
     btn.onclick = () => abrirProblema(p);
-    listaDiv.appendChild(btn);
+    lista.appendChild(btn);
   });
 }
 
 function abrirProblema(p) {
   atual = p;
-  titulo.textContent = p.title;
-  enunciado.textContent = p.statement;
-  solucao.textContent = p.solution;
-  mostrarSolBtn.style.display = "inline-block";
-  solucao.style.display = "none";
+  titulo.textContent = p.id;
+  enunciado.innerHTML = p.enunciado;
+  solucaoEl.style.display = "none";
+  solucaoBtn.style.display = "inline-block";
 }
 
-mostrarSolBtn.onclick = () => {
-  solucao.style.display = solucao.style.display === "none" ? "block" : "none";
-  renderMathInElement(solucao, { delimiters: [{left:"$", right:"$"}] });
+// Mostrar solução
+solucaoBtn.onclick = () => {
+  if (atual) {
+    solucaoEl.innerHTML = atual.solucao;
+    solucaoEl.style.display = "block";
+  }
 };
