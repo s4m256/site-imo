@@ -6,11 +6,7 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script>
       window.MathJax = {
-        tex: {
-          inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]']],
-          processEscapes: true
-        }
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true }
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -30,11 +26,15 @@
         .lista button {
             display:block;width:calc(100% - 60px);margin:5px 0 5px 54px;
             padding:10px 16px;background:#1e293b;color:white;border:none;
-            border-radius:6px;text-align:left;cursor:pointer;
+            border-radius:6px;text-align:left;cursor:pointer;font-size:0.98em;
         }
         .lista button:hover {background:#3b82f6;}
         .lista button.feito {background:#166534;}
-        .lista .versao {margin-left:70px;font-size:0.9em;color:#94a3b8;}
+        .lista .versao {
+            margin-left:74px;padding:6px 16px;color:#cbd5e1;font-size:0.9em;cursor:pointer;
+        }
+        .lista .versao:hover {color:white;}
+        .lista .versao.feito {color:#86efac;}
         .detalhe {width:70%;background:#020617;padding:25px;border-radius:10px;}
         #enunciado {line-height:1.8;font-size:1.15em;margin-bottom:20px;}
         .botoes {margin-top:20px;}
@@ -79,9 +79,7 @@ fetch("problemas.json")
         problemas = data;
         renderLista();
     })
-    .catch(() => {
-        document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>problemas.json não encontrado</p>";
-    });
+    .catch(() => document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>problemas.json não encontrado</p>");
 
 function renderLista() {
     const lista = document.getElementById("lista");
@@ -90,26 +88,27 @@ function renderLista() {
     const grupos = {};
 
     problemas.forEach(p => {
-        const idLower = p.id.toLowerCase();
-        const partes = idLower.split('_');
+        const partes = p.id.toLowerCase().split('_'); // fimo_2021_number_theory_p8_1
         const ano = partes[1];
         let materia = partes[2];
 
-        if (materia.includes("number") || materia === "numbertheory") materia = "number theory";
+        // Normaliza number theory
+        if (/number/.test(materia)) materia = "number theory";
 
         const nomeMateria = nomesMaterias[materia] || materia.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
-        // Detecta número do problema e possível versão/sufixo
-        const resto = partes.slice(3).join('_'); // p8_1 ou p3a ou p6
-        const match = resto.match(/^p(\d+)([ab]?|_(\d+))?$/);
-        const num = match ? match[1] : "0";
-        const sufixo = match && match[3] ? match[3] : (match && match[2] ? match[2].toUpperCase() : "");
+        // Extrai número do problema e versão
+        const tail = partes.slice(3).join('_'); // "p8_1" ou "p3a" ou "p6"
+        const match = tail.match(/^p(\d+)([ab_]\d+)?/);
+        const numBase = match ? parseInt(match[1]) : 0;
+        const sufixo = match && match[2] ? match[2] : "";
+        const versao = sufixo.replace(/^[_ab]/, ""); // "1", "2", "a", "b", ...
 
-        const display = sufixo ? `P${num} (${sufixo})` : `P${num}`;
+        const display = versao ? `P${numBase} (${versao})` : `P${numBase}`;
 
         if (!grupos[ano]) grupos[ano] = {};
         if (!grupos[ano][materia]) grupos[ano][materia] = { nome: nomeMateria, probs: [] };
-        grupos[ano][materia].probs.push({ ...p, display, num: parseInt(num) });
+        grupos[ano][materia].probs.push({ ...p, numBase, versao, display });
     });
 
     const anos = Object.keys(grupos).sort((a,b) => b - a);
@@ -137,42 +136,37 @@ function renderLista() {
             sumMat.textContent = info.nome;
             detMat.appendChild(sumMat);
 
-            // Agrupa por número base (P8, P3 etc)
+            // Agrupa por número base (P1, P2, ..., P8)
             const porNumero = {};
-            info.probs.forEach(item => {
-                if (!porNumero[item.num]) porNumero[item.num] = [];
-                porNumero[item.num].push(item);
+            info.probs.forEach(p => {
+                if (!porNumero[p.numBase]) porNumero[p.numBase] = [];
+                porNumero[p.numBase].push(p);
             });
 
             Object.keys(porNumero).sort((a,b) => a - b).forEach(n => {
                 const itens = porNumero[n];
 
-                if (itens.length === 1) {
-                    // Problema normal
+                if (itens.length === 1 && !itens[0].versao) {
+                    // Problema único normal
                     const btn = document.createElement("button");
-                    btn.textContent = itens[0].display;
+                    btn.textContent = `P${n}`;
                     if (feitos[itens[0].id]) btn.classList.add("feito");
                     btn.onclick = () => abrirProblema(itens[0]);
                     detMat.appendChild(btn);
                 } else {
-                    // Tem versões (ex: P8 (1), P8 (2) ou P3A, P3B)
+                    // Tem versões ou partes
                     const baseBtn = document.createElement("button");
                     baseBtn.textContent = `P${n}`;
-                    baseBtn.style.fontWeight = "bold";
+                    baseBtn.style.fontWeight = "600";
                     if (itens.every(i => feitos[i.id])) baseBtn.classList.add("feito");
                     detMat.appendChild(baseBtn);
 
-                    itens.sort((a,b) => a.display.localeCompare(b.display)).forEach(item => {
-                        const vBtn = document.createElement("div");
-                        vBtn.className = "versao";
-                        vBtn.textContent = `↳ ${item.display}`;
-                        if (feitos[item.id]) vBtn.style.color = "#86efac";
-                        vBtn.style.cursor = "pointer";
-                        vBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            abrirProblema(item);
-                        };
-                        detMat.appendChild(vBtn);
+                    itens.sort((a,b) => a.versao.localeCompare(b.versao)).forEach(item => {
+                        const v = document.createElement("div");
+                        v.className = "versao" + (feitos[item.id] ? " feito" : "");
+                        v.textContent = `→ ${item.display}`;
+                        v.onclick = () => abrirProblema(item);
+                        detMat.appendChild(v);
                     });
                 }
             });
