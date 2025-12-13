@@ -10,6 +10,12 @@
           inlineMath: [['$', '$'], ['\\(', '\\)']],
           displayMath: [['$$', '$$'], ['\\[', '\\]']],
           processEscapes: true
+        },
+        startup: {
+          ready() {
+            MathJax.startup.defaultReady();
+            MathJax.startup.promise.then(() => console.log("MathJax pronto"));
+          }
         }
       };
     </script>
@@ -38,10 +44,12 @@
         .lista .versao:hover {color:#bfdbfe;}
         .lista .versao.feito {color:#86efac;}
         .detalhe {width:70%;background:#020617;padding:25px;border-radius:10px;}
-        #enunciado {line-height:1.8;font-size:1.15em;margin-bottom:20px;}
+        #enunciado {line-height:1.8;font-size:1.15em;margin-bottom:20px;min-height:1.2em;}
         .botoes {margin-top:20px;}
-        .feito-btn, .solucao-btn {padding:12px 26px;background:#2563eb;border:none;color:white;
-            border-radius:6px;cursor:pointer;margin-right:12px;}
+        .feito-btn, .solucao-btn {
+            padding:12px 26px;background:#2563eb;border:none;color:white;
+            border-radius:6px;cursor:pointer;margin-right:12px;
+        }
         #solucao {margin-top:30px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
     </style>
 </head>
@@ -93,26 +101,20 @@ function renderLista() {
 
     problemas.forEach(p => {
         const idLower = p.id.toLowerCase();
-        const matchID = idLower.match(/^fimo_(\d+)_(.+?)_(p.+)$/);
-        if (!matchID) return;
+        const m = idLower.match(/^fimo_(\d+)_(.+?)_(p.+)$/);
+        if (!m) return;
 
-        const ano = matchID[1];
-        let materia = matchID[2];
-        const resto = matchID[3];
+        const ano = m[1];
+        let materia = m[2];
+        const resto = m[3];
 
         if (materia.includes("number")) materia = "number theory";
 
         const nomeMateria = nomesMaterias[materia] || materia.split(/[_ ]/).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
-        const matchNum = resto.match(/^p(\d+)([ab]?|_(\d+))?$/i);
-        let num = 0, sufixo = "";
-        if (matchNum) {
-            num = parseInt(matchNum[1]);
-            sufixo = matchNum[3] || matchNum[2] || "";
-        } else {
-            const n = resto.match(/\d+/);
-            num = n ? parseInt(n[0]) : 0;
-        }
+        const numMatch = resto.match(/^p(\d+)/i);
+        const num = numMatch ? parseInt(numMatch[1]) : 0;
+        const sufixo = resto.replace(/^p\d+/i, '').replace(/^_/, '') || "";
 
         const display = `P${num}${sufixo ? ` (${sufixo.toUpperCase()})` : ""}`;
 
@@ -125,7 +127,7 @@ function renderLista() {
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
-        detAno.open = false;                     // NENHUM ano aberto no início
+        detAno.open = false; // NENHUM ano aberto
 
         const sumAno = document.createElement("summary");
         sumAno.textContent = `IMO ${ano}`;
@@ -168,11 +170,11 @@ function renderLista() {
                     detMat.appendChild(baseBtn);
 
                     itens.forEach(item => {
-                        const vBtn = document.createElement("div");
-                        vBtn.className = "versao" + (feitos[item.id] ? " feito" : "");
-                        vBtn.textContent = `↳ ${item.display}`;
-                        vBtn.onclick = () => abrirProblema(item);
-                        detMat.appendChild(vBtn);
+                        const v = document.createElement("div");
+                        v.className = "versao" + (feitos[item.id] ? " feito" : "");
+                        v.textContent = `↳ ${item.display}`;
+                        v.onclick = () => abrirProblema(item);
+                        detMat.appendChild(v);
                     });
                 }
             });
@@ -186,14 +188,20 @@ function renderLista() {
 
 function abrirProblema(p) {
     atual = p;
+
     document.getElementById("titulo").textContent = p.id.toUpperCase();
-    document.getElementById("enunciado").innerHTML = p.enunciado || "Sem enunciado";
+    const enunciadoDiv = document.getElementById("enunciado");
+    enunciadoDiv.innerHTML = p.enunciado || "Sem enunciado";
+
     document.getElementById("feitoBtn").textContent = feitos[p.id] ? "Desmarcar" : "Marcar como feito";
     document.getElementById("feitoBtn").style.display = "inline-block";
     document.getElementById("solucaoBtn").style.display = p.solucao ? "inline-block" : "none";
     document.getElementById("solucao").style.display = "none";
     document.getElementById("solucao").innerHTML = "";
-    MathJax.typesetPromise();
+
+    // Garante que o MathJax renderiza APÓS o HTML estar no DOM
+    MathJax.typesetClear([enunciadoDiv]);
+    MathJax.typesetPromise([enunciadoDiv]).catch(() => {}); // renderiza só o enunciado
 }
 
 document.getElementById("feitoBtn").onclick = () => {
@@ -205,10 +213,11 @@ document.getElementById("feitoBtn").onclick = () => {
 };
 
 document.getElementById("solucaoBtn").onclick = () => {
-    const sol = document.getElementById("solucao");
-    sol.innerHTML = atual.solucao || "Solução não disponível";
-    sol.style.display = "block";
-    MathJax.typesetPromise();
+    const solDiv = document.getElementById("solucao");
+    solDiv.innerHTML = atual.solucao || "Solução não disponível";
+    solDiv.style.display = "block";
+    MathJax.typesetClear([solDiv]);
+    MathJax.typesetPromise([solDiv]).catch(() => {});
 };
 </script>
 </body>
