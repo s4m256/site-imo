@@ -19,21 +19,31 @@
         h1 {margin-bottom:10px;}
         .container {display:flex;gap:20px;}
         .lista {width:30%;overflow-y:auto;max-height:90vh;}
-        .lista details > summary {font-weight:bold;background:#1e293b;padding:8px 12px;border-radius:6px;cursor:pointer;margin:6px 0;list-style:none;}
-        .lista details details > summary {background:#334155;font-weight:normal;padding-left:20px;}
-        .lista button {display:block;width:calc(100% - 40px);margin:4px 0 4px 35px;padding:8px 12px;background:#1e293b;color:white;border:none;border-radius:4px;text-align:left;cursor:pointer;}
+        .lista details > summary {
+            font-weight:bold;background:#1e293b;padding:10px 14px;border-radius:6px;
+            cursor:pointer;margin:8px 0;list-style:none;font-size:1.1em;
+        }
+        .lista details details > summary {
+            background:#334155;padding:8px 14px 8px 30px;font-weight:normal;font-size:1em;
+        }
+        .lista button {
+            display:block;width:calc(100% - 50px);margin:4px 0 4px 50px;
+            padding:9px 14px;background:#1e293b;color:white;border:none;
+            border-radius:5px;text-align:left;cursor:pointer;font-size:0.95em;
+        }
         .lista button:hover {background:#3b82f6;}
         .lista button.feito {background:#166534;}
-        .detalhe {width:70%;background:#020617;padding:20px;border-radius:8px;}
-        #enunciado {line-height:1.7;font-size:1.1em;}
-        .botoes {margin-top:25px;}
-        .feito-btn, .solucao-btn {padding:10px 20px;background:#2563eb;border:none;color:white;border-radius:6px;cursor:pointer;}
+        .detalhe {width:70%;background:#020617;padding:25px;border-radius:10px;}
+        #enunciado {line-height:1.8;font-size:1.15em;}
+        .botoes {margin-top:30px;}
+        .feito-btn, .solucao-btn {padding:12px 24px;background:#2563eb;border:none;color:white;
+            border-radius:6px;cursor:pointer;font-size:1em;}
         .feito-btn:hover, .solucao-btn:hover {background:#3b82f6;}
-        #solucao {margin-top:30px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
+        }
+        #solucao {margin-top:35px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
     </style>
 </head>
 <body>
-<h1
 <h1>Lista de Problemas IMO</h1>
 <div class="container">
     <div class="lista" id="lista"></div>
@@ -53,12 +63,11 @@ let problemas = [];
 let feitos = JSON.parse(localStorage.getItem("imo-feitos") || "{}");
 let atual = null;
 
-// Mapeamento para nomes bonitos
 const materiaNome = {
     algebra: "Álgebra",
     geometry: "Geometria",
     numbertheory: "Teoria dos Números",
-    "number theory": "Teoria dos Números",
+    number_theory: "Teoria dos Números",
     combinatorics: "Combinatória"
 };
 
@@ -69,8 +78,7 @@ fetch("problemas.json")
         renderLista();
     })
     .catch(err => {
-        document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>Erro ao carregar problemas.json</p>";
-        console.error(err);
+        document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>problemas.json não encontrado</p>";
     });
 
 function renderLista() {
@@ -80,22 +88,21 @@ function renderLista() {
     const grupos = {};
 
     problemas.forEach(p => {
-        const partes = p.id.split('_'); // fimo_2009_numbertheory_p3
+        const partes = p.id.toLowerCase().split('_'); // fimo_2009_numbertheory_p3
         const ano = partes[1];
         let materia = partes[2];
 
-        // Corrige numbertheory → number theory (ou aceita os dois)
-        if (materia === "numbertheory") materia = "number theory";
+        // Padroniza number theory
+        if (materia === "numbertheory" || materia === "number_theory") materia = "number theory";
 
-        const nomeMateria = materiaNome[materia] || materia.charAt(0).toUpperCase() + materia.slice(1).replace(/_/g, " ");
+        const nome = materiaNome[materia] || materia.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
         if (!grupos[ano]) grupos[ano] = {};
-        if (!grupos[ano][materia]) grupos[ano][materia] = { nome: nomeMateria, problemas: [] };
-        grupos[ano][materia].problemas.push(p);
+        if (!grupos[ano][materia]) grupos[ano][materia] = { nome, probs: [] };
+        grupos[ano][materia].probs.push(p);
     });
 
-    // Ordena anos decrescente
-    const anos = Object.keys(grupos).sort((a, b) => b - a);
+    const anos = Object.keys(grupos).sort((a,b) => b - a);
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
@@ -104,30 +111,27 @@ function renderLista() {
         sumAno.textContent = `IMO ${ano}`;
         detAno.appendChild(sumAno);
 
-        // Ordena matérias (opcional: ordem fixa)
-        const materiasOrdenadas = Object.keys(grupos[ano]).sort();
-
-        materiasOrdenadas.forEach(mat => {
+        Object.keys(grupos[ano]).sort().forEach(mat => {
+            const info = grupos[ano][mat];
             const detMat = document.createElement("details");
             detMat.open = true;
             const sumMat = document.createElement("summary");
-            sumMat.textContent = grupos[ano][mat].nome;
+            sumMat.textContent = info.nome;
             detMat.appendChild(sumMat);
 
-            // Ordena problemas P1, P2, ...
-            const probs = grupos[ano][mat].problemas.sort((a, b) => {
-                const na = parseInt(a.id.split('_')[3].slice(1));
-                const nb = parseInt(b.id.split('_')[3].slice(1));
-                return na - nb;
-            });
-
-            probs.forEach(p => {
-                const btn = document.createElement("button");
-                btn.textContent = p.id.split('_').pop().toUpperCase(); // P1, P2...
-                if (feitos[p.id]) btn.classList.add("feito");
-                btn.onclick = () => abrirProblema(p);
-                detMat.appendChild(btn);
-            });
+            info.probs
+                .sort((a,b) => {
+                    const na = parseInt(a.id.split('_')[3].slice(1));
+                    nb = parseInt(b.id.split('_')[3].slice(1));
+                    return na - nb;
+                })
+                .forEach(p => {
+                    const btn = document.createElement("button");
+                    btn.textContent = p.id.split('_').pop().toUpperCase();
+                    if (feitos[p.id]) btn.classList.add("feito");
+                    btn.onclick = () => abrirProblema(p);
+                    detMat.appendChild(btn);
+                });
 
             detAno.appendChild(detMat);
         });
