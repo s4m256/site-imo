@@ -1,23 +1,128 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Problemas IMO</title>
-  <link rel="stylesheet" href="estilos.css">
-  <script src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex/dist/contrib/auto-render.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Lista de Problemas IMO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .lista {
+            width: 30%;
+        }
+        .lista button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+        .lista button.feito {
+            background: #166534;
+        }
+        .detalhe {
+            width: 70%;
+            background: #020617;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .feito-btn, .solucao-btn {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .feito-btn { background: #2563eb; }
+        .solucao-btn { background: #7c3aed; }
+        pre { white-space: pre-wrap; }
+    </style>
 </head>
 <body>
-  <h1>Lista de Problemas IMO</h1>
-  <div class="container">
+
+<h1>Lista de Problemas IMO</h1>
+
+<div class="container">
     <div class="lista" id="lista"></div>
+
     <div class="detalhe">
-      <h2 id="titulo">Selecione um problema</h2>
-      <p id="enunciado"></p>
-      <button id="mostrarSolBtn" style="display:none;">Mostrar Solução</button>
-      <pre id="solucao" style="display:none;"></pre>
+        <h2 id="titulo">Selecione um problema</h2>
+        <p id="enunciado"></p>
+        <button class="feito-btn" id="feitoBtn" style="display:none;">Marcar como feito</button>
+        <button class="solucao-btn" id="solucaoBtn" style="display:none;">Mostrar solução</button>
+        <pre id="solucao" style="display:none;"></pre>
     </div>
-  </div>
-  <script src="script.js"></script>
+</div>
+
+<script>
+    const lista = document.getElementById("lista");
+    const titulo = document.getElementById("titulo");
+    const enunciado = document.getElementById("enunciado");
+    const feitoBtn = document.getElementById("feitoBtn");
+    const solucaoBtn = document.getElementById("solucaoBtn");
+    const solucaoPre = document.getElementById("solucao");
+
+    let problemas = [];
+    let feitos = JSON.parse(localStorage.getItem("feitos")) || {};
+    let atual = null;
+
+    // Carregar problemas do JSON
+    fetch("problemas.json")
+        .then(res => res.json())
+        .then(data => {
+            problemas = data;
+            renderLista();
+        });
+
+    function renderLista() {
+        lista.innerHTML = "";
+        problemas.forEach(p => {
+            const btn = document.createElement("button");
+            btn.textContent = p.id; // ou p.titulo se tiver
+            if (feitos[p.id]) btn.classList.add("feito");
+            btn.onclick = () => abrirProblema(p);
+            lista.appendChild(btn);
+        });
+    }
+
+    function abrirProblema(p) {
+        atual = p;
+        titulo.textContent = p.id;
+        enunciado.textContent = p.enunciado;
+        solucaoPre.style.display = "none";
+        solucaoBtn.style.display = "inline-block";
+        feitoBtn.style.display = "inline-block";
+    }
+
+    feitoBtn.onclick = () => {
+        if (atual) {
+            feitos[atual.id] = true;
+            localStorage.setItem("feitos", JSON.stringify(feitos));
+            renderLista();
+        }
+    };
+
+    solucaoBtn.onclick = () => {
+        if (atual) {
+            solucaoPre.textContent = atual.solucao;
+            solucaoPre.style.display = "block";
+        }
+    };
+</script>
+
 </body>
 </html>
