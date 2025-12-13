@@ -18,29 +18,32 @@
         body {font-family: Arial, sans-serif;background:#0f172a;color:#e5e7eb;margin:0;padding:20px;}
         h1 {margin-bottom:10px;}
         .container {display:flex;gap:20px;}
-        .lista {width:30%;overflow-y:auto;max-height:90vh;}
+        .lista {width:30%;overflow-y:auto;max-height:92vh;}
         .lista details > summary {
-            font-weight:bold;background:#1e293b;padding:10px 14px;border-radius:6px;
-            cursor:pointer;margin:8px 0;list-style:none;font-size:1.1em;
+            display:block;margin:8px 0;
+        }
+        .lista > details > summary {
+            font-weight:bold;background:#1e293b;padding:12px 16px;border-radius:8px;
+            cursor:pointer;list-style:none;font-size:1.15em;
         }
         .lista details details > summary {
-            background:#334155;padding:8px 14px 8px 30px;font-weight:normal;font-size:1em;
+            background:#334155;padding:9px 16px 9px 34px;
+            cursor:pointer;list-style:none;border-radius:6px;
+            font-size:1em;
         }
         .lista button {
-            display:block;width:calc(100% - 50px);margin:4px 0 4px 50px;
-            padding:9px 14px;background:#1e293b;color:white;border:none;
-            border-radius:5px;text-align:left;cursor:pointer;font-size:0.95em;
+            display:block;width:calc(100% - 60px);margin:5px 0 5px 54px;
+            padding:10px 16px;background:#1e293b;color:white;border:none;
+            border-radius:6px;text-align:left;cursor:pointer;font-size:0.98em;
         }
         .lista button:hover {background:#3b82f6;}
         .lista button.feito {background:#166534;}
         .detalhe {width:70%;background:#020617;padding:25px;border-radius:10px;}
-        #enunciado {line-height:1.8;font-size:1.15em;}
-        .botoes {margin-top:30px;}
-        .feito-btn, .solucao-btn {padding:12px 24px;background:#2563eb;border:none;color:white;
-            border-radius:6px;cursor:pointer;font-size:1em;}
-        .feito-btn:hover, .solucao-btn:hover {background:#3b82f6;}
-        }
-        #solucao {margin-top:35px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
+        #enunciado {line-height:1.8;font-size:1.15em;margin-bottom:20px;}
+        .botoes {margin-top:20px;}
+        .feito-btn, .solucao-btn {padding:12px 26px;background:#2563eb;border:none;color:white;
+            border-radius:6px;cursor:pointer;font-size:1em;margin-right:12px;}
+        #solucao {margin-top:30px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
     </style>
 </head>
 <body>
@@ -63,12 +66,15 @@ let problemas = [];
 let feitos = JSON.parse(localStorage.getItem("imo-feitos") || "{}");
 let atual = null;
 
-const materiaNome = {
+// Nomes bonitos das matérias
+const nomesMaterias = {
     algebra: "Álgebra",
     geometry: "Geometria",
     numbertheory: "Teoria dos Números",
+    "number theory": "Teoria dos Números",
     number_theory: "Teoria dos Números",
-    combinatorics: "Combinatória"
+    combinatorics: "Combinatória",
+    inequalities: "Desigualdades"
 };
 
 fetch("problemas.json")
@@ -77,7 +83,7 @@ fetch("problemas.json")
         problemas = data;
         renderLista();
     })
-    .catch(err => {
+    .catch(() => {
         document.getElementById("lista").innerHTML = "<p style='color:#ef4444;'>problemas.json não encontrado</p>";
     });
 
@@ -88,17 +94,20 @@ function renderLista() {
     const grupos = {};
 
     problemas.forEach(p => {
-        const partes = p.id.toLowerCase().split('_'); // fimo_2009_numbertheory_p3
+        const id = p.id.toLowerCase();                 // garante lowercase
+        const partes = id.split('_');                  // fimo_2009_numbertheory_p3
         const ano = partes[1];
         let materia = partes[2];
 
-        // Padroniza number theory
-        if (materia === "numbertheory" || materia === "number_theory") materia = "number theory";
+        // Padroniza number theory de qualquer jeito
+        if (materia.includes("number") || materia === "numbertheory") {
+            materia = "number theory";
+        }
 
-        const nome = materiaNome[materia] || materia.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+        const nomeMateria = nomesMaterias[materia] || materia.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
         if (!grupos[ano]) grupos[ano] = {};
-        if (!grupos[ano][materia]) grupos[ano][materia] = { nome, probs: [] };
+        if (!grupos[ano][materia]) grupos[ano][materia] = { nome: nomeMateria, probs: [] };
         grupos[ano][materia].probs.push(p);
     });
 
@@ -106,15 +115,26 @@ function renderLista() {
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
-        detAno.open = true;
+        // Só o ano mais recente aberto
+        detAno.open = ano == anos[0];
+
         const sumAno = document.createElement("summary");
         sumAno.textContent = `IMO ${ano}`;
         detAno.appendChild(sumAno);
 
-        Object.keys(grupos[ano]).sort().forEach(mat => {
+        // Ordem fixa das matérias (opcional, mas fica bonito)
+        const ordem = ["algebra", "geometry", "number theory", "combinatorics", "inequalities"];
+        const materias = Object.keys(grupos[ano]).sort((a,b) => {
+            const ia = ordem.indexOf(a);
+            const ib = ordem.indexOf(b);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+
+        materias.forEach(mat => {
             const info = grupos[ano][mat];
             const detMat = document.createElement("details");
-            detMat.open = true;
+            detMat.open = false; // matérias começam fechadas
+
             const sumMat = document.createElement("summary");
             sumMat.textContent = info.nome;
             detMat.appendChild(sumMat);
@@ -122,7 +142,7 @@ function renderLista() {
             info.probs
                 .sort((a,b) => {
                     const na = parseInt(a.id.split('_')[3].slice(1));
-                    nb = parseInt(b.id.split('_')[3].slice(1));
+                    const nb = parseInt(b.id.split('_')[3].slice(1));
                     return na - nb;
                 })
                 .forEach(p => {
