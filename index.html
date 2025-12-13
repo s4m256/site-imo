@@ -11,16 +11,9 @@
             margin: 0;
             padding: 20px;
         }
-        h1 {
-            margin-bottom: 10px;
-        }
-        .container {
-            display: flex;
-            gap: 20px;
-        }
-        .lista {
-            width: 30%;
-        }
+        h1 { margin-bottom: 10px; }
+        .container { display: flex; gap: 20px; }
+        .lista { width: 30%; }
         .lista button {
             width: 100%;
             padding: 10px;
@@ -31,9 +24,7 @@
             cursor: pointer;
             text-align: left;
         }
-        .lista button.feito {
-            background: #166534;
-        }
+        .lista button.feito { background: #166534; }
         .detalhe {
             width: 70%;
             background: #020617;
@@ -43,14 +34,16 @@
         .feito-btn, .solucao-btn {
             margin-top: 15px;
             padding: 10px 15px;
+            background: #2563eb;
             border: none;
             color: white;
             cursor: pointer;
         }
-        .feito-btn { background: #2563eb; }
-        .solucao-btn { background: #7c3aed; }
-        pre { white-space: pre-wrap; }
+        pre { background: #1e293b; padding: 10px; border-radius: 6px; overflow-x: auto; display: none; }
     </style>
+
+    <!-- MathJax para renderizar LaTeX -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 
@@ -61,38 +54,33 @@
 
     <div class="detalhe">
         <h2 id="titulo">Selecione um problema</h2>
-        <p id="enunciado"></p>
+        <div id="enunciado"></div>
         <button class="feito-btn" id="feitoBtn" style="display:none;">Marcar como feito</button>
         <button class="solucao-btn" id="solucaoBtn" style="display:none;">Mostrar solução</button>
-        <pre id="solucao" style="display:none;"></pre>
+        <pre id="solucaoPre"></pre>
     </div>
 </div>
 
 <script>
+async function carregarProblemas() {
+    const resp = await fetch("problemas.json");
+    const problemas = await resp.json();
+
     const lista = document.getElementById("lista");
     const titulo = document.getElementById("titulo");
     const enunciado = document.getElementById("enunciado");
     const feitoBtn = document.getElementById("feitoBtn");
     const solucaoBtn = document.getElementById("solucaoBtn");
-    const solucaoPre = document.getElementById("solucao");
+    const solucaoPre = document.getElementById("solucaoPre");
 
-    let problemas = [];
-    let feitos = JSON.parse(localStorage.getItem("feitos")) || {};
+    const feitos = JSON.parse(localStorage.getItem("feitos")) || {};
     let atual = null;
-
-    // Carregar problemas do JSON
-    fetch("problemas.json")
-        .then(res => res.json())
-        .then(data => {
-            problemas = data;
-            renderLista();
-        });
 
     function renderLista() {
         lista.innerHTML = "";
         problemas.forEach(p => {
             const btn = document.createElement("button");
-            btn.textContent = p.id; // ou p.titulo se tiver
+            btn.textContent = p.id;
             if (feitos[p.id]) btn.classList.add("feito");
             btn.onclick = () => abrirProblema(p);
             lista.appendChild(btn);
@@ -102,26 +90,31 @@
     function abrirProblema(p) {
         atual = p;
         titulo.textContent = p.id;
-        enunciado.textContent = p.enunciado;
+        enunciado.innerHTML = p.enunciado;
         solucaoPre.style.display = "none";
         solucaoBtn.style.display = "inline-block";
         feitoBtn.style.display = "inline-block";
+        MathJax.typesetPromise(); // renderiza LaTeX
     }
 
     feitoBtn.onclick = () => {
-        if (atual) {
-            feitos[atual.id] = true;
-            localStorage.setItem("feitos", JSON.stringify(feitos));
-            renderLista();
-        }
+        if (!atual) return;
+        feitos[atual.id] = true;
+        localStorage.setItem("feitos", JSON.stringify(feitos));
+        renderLista();
     };
 
     solucaoBtn.onclick = () => {
-        if (atual) {
-            solucaoPre.textContent = atual.solucao;
-            solucaoPre.style.display = "block";
-        }
+        if (!atual) return;
+        solucaoPre.innerHTML = atual.solucao;
+        solucaoPre.style.display = "block";
+        MathJax.typesetPromise(); // renderiza LaTeX
     };
+
+    renderLista();
+}
+
+carregarProblemas();
 </script>
 
 </body>
