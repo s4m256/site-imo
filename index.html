@@ -94,26 +94,24 @@ function renderLista() {
     problemas.forEach(p => {
         const idLower = p.id.toLowerCase();
         const matchID = idLower.match(/^fimo_(\d+)_(.+?)_(p.+)$/);
-        if (!matchID) return; // ID inválido
+        if (!matchID) return;
 
-        let ano = matchID[1];
+        const ano = matchID[1];
         let materia = matchID[2];
-        let resto = matchID[3];
+        const resto = matchID[3];
 
         if (materia.includes("number")) materia = "number theory";
 
         const nomeMateria = nomesMaterias[materia] || materia.split(/[_ ]/).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
         const matchNum = resto.match(/^p(\d+)([ab]?|_(\d+))?$/i);
-        let num, sufixo;
+        let num = 0, sufixo = "";
         if (matchNum) {
             num = parseInt(matchNum[1]);
             sufixo = matchNum[3] || matchNum[2] || "";
         } else {
-            // Fallback
-            const numMatch = resto.match(/\d+/);
-            num = numMatch ? parseInt(numMatch[0]) : 0;
-            sufixo = resto.replace(/p?\d+/, '').replace(/^_/, '') || "";
+            const n = resto.match(/\d+/);
+            num = n ? parseInt(n[0]) : 0;
         }
 
         const display = `P${num}${sufixo ? ` (${sufixo.toUpperCase()})` : ""}`;
@@ -127,7 +125,7 @@ function renderLista() {
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
-        detAno.open = ano == anos[0];
+        detAno.open = false;                     // NENHUM ano aberto no início
 
         const sumAno = document.createElement("summary");
         sumAno.textContent = `IMO ${ano}`;
@@ -171,9 +169,8 @@ function renderLista() {
 
                     itens.forEach(item => {
                         const vBtn = document.createElement("div");
-                        vBtn.className = "versao";
+                        vBtn.className = "versao" + (feitos[item.id] ? " feito" : "");
                         vBtn.textContent = `↳ ${item.display}`;
-                        if (feitos[item.id]) vBtn.classList.add("feito");
                         vBtn.onclick = () => abrirProblema(item);
                         detMat.appendChild(vBtn);
                     });
