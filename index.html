@@ -19,30 +19,27 @@
         h1 {margin-bottom:10px;}
         .container {display:flex;gap:20px;}
         .lista {width:30%;overflow-y:auto;max-height:92vh;}
-        .lista details > summary {
-            display:block;margin:8px 0;
-        }
         .lista > details > summary {
             font-weight:bold;background:#1e293b;padding:12px 16px;border-radius:8px;
-            cursor:pointer;list-style:none;font-size:1.15em;
+            cursor:pointer;list-style:none;font-size:1.15em;margin:8px 0;
         }
         .lista details details > summary {
-            background:#334155;padding:9px 16px 9px 34px;
-            cursor:pointer;list-style:none;border-radius:6px;
-            font-size:1em;
+            background:#334155;padding:9px 16px 9px 34px;border-radius:6px;
+            cursor:pointer;list-style:none;
         }
         .lista button {
             display:block;width:calc(100% - 60px);margin:5px 0 5px 54px;
             padding:10px 16px;background:#1e293b;color:white;border:none;
-            border-radius:6px;text-align:left;cursor:pointer;font-size:0.98em;
+            border-radius:6px;text-align:left;cursor:pointer;
         }
         .lista button:hover {background:#3b82f6;}
         .lista button.feito {background:#166534;}
+        .lista .versao {margin-left:70px;font-size:0.9em;color:#94a3b8;}
         .detalhe {width:70%;background:#020617;padding:25px;border-radius:10px;}
         #enunciado {line-height:1.8;font-size:1.15em;margin-bottom:20px;}
         .botoes {margin-top:20px;}
         .feito-btn, .solucao-btn {padding:12px 26px;background:#2563eb;border:none;color:white;
-            border-radius:6px;cursor:pointer;font-size:1em;margin-right:12px;}
+            border-radius:6px;cursor:pointer;margin-right:12px;}
         #solucao {margin-top:30px;padding:20px;background:#0f172a;border-radius:8px;display:none;}
     </style>
 </head>
@@ -66,7 +63,6 @@ let problemas = [];
 let feitos = JSON.parse(localStorage.getItem("imo-feitos") || "{}");
 let atual = null;
 
-// Nomes bonitos das matérias
 const nomesMaterias = {
     algebra: "Álgebra",
     geometry: "Geometria",
@@ -94,35 +90,38 @@ function renderLista() {
     const grupos = {};
 
     problemas.forEach(p => {
-        const id = p.id.toLowerCase();                 // garante lowercase
-        const partes = id.split('_');                  // fimo_2009_numbertheory_p3
+        const idLower = p.id.toLowerCase();
+        const partes = idLower.split('_');
         const ano = partes[1];
         let materia = partes[2];
 
-        // Padroniza number theory de qualquer jeito
-        if (materia.includes("number") || materia === "numbertheory") {
-            materia = "number theory";
-        }
+        if (materia.includes("number") || materia === "numbertheory") materia = "number theory";
 
         const nomeMateria = nomesMaterias[materia] || materia.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
+        // Detecta número do problema e possível versão/sufixo
+        const resto = partes.slice(3).join('_'); // p8_1 ou p3a ou p6
+        const match = resto.match(/^p(\d+)([ab]?|_(\d+))?$/);
+        const num = match ? match[1] : "0";
+        const sufixo = match && match[3] ? match[3] : (match && match[2] ? match[2].toUpperCase() : "");
+
+        const display = sufixo ? `P${num} (${sufixo})` : `P${num}`;
+
         if (!grupos[ano]) grupos[ano] = {};
         if (!grupos[ano][materia]) grupos[ano][materia] = { nome: nomeMateria, probs: [] };
-        grupos[ano][materia].probs.push(p);
+        grupos[ano][materia].probs.push({ ...p, display, num: parseInt(num) });
     });
 
     const anos = Object.keys(grupos).sort((a,b) => b - a);
 
     anos.forEach(ano => {
         const detAno = document.createElement("details");
-        // Só o ano mais recente aberto
         detAno.open = ano == anos[0];
 
         const sumAno = document.createElement("summary");
         sumAno.textContent = `IMO ${ano}`;
         detAno.appendChild(sumAno);
 
-        // Ordem fixa das matérias (opcional, mas fica bonito)
         const ordem = ["algebra", "geometry", "number theory", "combinatorics", "inequalities"];
         const materias = Object.keys(grupos[ano]).sort((a,b) => {
             const ia = ordem.indexOf(a);
@@ -133,25 +132,50 @@ function renderLista() {
         materias.forEach(mat => {
             const info = grupos[ano][mat];
             const detMat = document.createElement("details");
-            detMat.open = false; // matérias começam fechadas
 
             const sumMat = document.createElement("summary");
             sumMat.textContent = info.nome;
             detMat.appendChild(sumMat);
 
-            info.probs
-                .sort((a,b) => {
-                    const na = parseInt(a.id.split('_')[3].slice(1));
-                    const nb = parseInt(b.id.split('_')[3].slice(1));
-                    return na - nb;
-                })
-                .forEach(p => {
+            // Agrupa por número base (P8, P3 etc)
+            const porNumero = {};
+            info.probs.forEach(item => {
+                if (!porNumero[item.num]) porNumero[item.num] = [];
+                porNumero[item.num].push(item);
+            });
+
+            Object.keys(porNumero).sort((a,b) => a - b).forEach(n => {
+                const itens = porNumero[n];
+
+                if (itens.length === 1) {
+                    // Problema normal
                     const btn = document.createElement("button");
-                    btn.textContent = p.id.split('_').pop().toUpperCase();
-                    if (feitos[p.id]) btn.classList.add("feito");
-                    btn.onclick = () => abrirProblema(p);
+                    btn.textContent = itens[0].display;
+                    if (feitos[itens[0].id]) btn.classList.add("feito");
+                    btn.onclick = () => abrirProblema(itens[0]);
                     detMat.appendChild(btn);
-                });
+                } else {
+                    // Tem versões (ex: P8 (1), P8 (2) ou P3A, P3B)
+                    const baseBtn = document.createElement("button");
+                    baseBtn.textContent = `P${n}`;
+                    baseBtn.style.fontWeight = "bold";
+                    if (itens.every(i => feitos[i.id])) baseBtn.classList.add("feito");
+                    detMat.appendChild(baseBtn);
+
+                    itens.sort((a,b) => a.display.localeCompare(b.display)).forEach(item => {
+                        const vBtn = document.createElement("div");
+                        vBtn.className = "versao";
+                        vBtn.textContent = `↳ ${item.display}`;
+                        if (feitos[item.id]) vBtn.style.color = "#86efac";
+                        vBtn.style.cursor = "pointer";
+                        vBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            abrirProblema(item);
+                        };
+                        detMat.appendChild(vBtn);
+                    });
+                }
+            });
 
             detAno.appendChild(detMat);
         });
