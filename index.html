@@ -1,11 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Meu site</title>
+    <title>Problemas de Matemática</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .lista {
+            width: 30%;
+        }
+
+        .lista button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .lista button.feito {
+            background: #166534;
+        }
+
+        .detalhe {
+            width: 70%;
+            background: #020617;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .feito-btn {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #2563eb;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Funcionou 🎯</h1>
-    <p>GitHub Pages está no ar.</p>
+
+<h1>Lista de Problemas</h1>
+
+<div class="container">
+    <div class="lista" id="lista"></div>
+
+    <div class="detalhe">
+        <h2 id="titulo">Selecione um problema</h2>
+        <p id="enunciado"></p>
+        <button class="feito-btn" id="feitoBtn" style="display:none;">
+            Marcar como feito
+        </button>
+    </div>
+</div>
+
+<script>
+    const problemas = [
+        { id: 1, titulo: "Problema 1", texto: "Prove que a soma dos n primeiros números ímpares é n²." },
+        { id: 2, titulo: "Problema 2", texto: "Determine todos os inteiros n tais que n² + 2n + 2 é primo." },
+        { id: 3, titulo: "Problema 3", texto: "Quantas soluções inteiras tem x² + y² = 25?" },
+        { id: 4, titulo: "Problema 4", texto: "Mostre que √2 é irracional." },
+        { id: 5, titulo: "Problema 5", texto: "Calcule a soma de 1 + 1/2 + 1/4 + ... + 1/2ⁿ." },
+        { id: 6, titulo: "Problema 6", texto: "Ache o máximo de xy dado que x + y = 10." },
+        { id: 7, titulo: "Problema 7", texto: "Resolva x³ − 3x + 1 = 0." },
+        { id: 8, titulo: "Problema 8", texto: "Quantos divisores positivos tem 360?" },
+        { id: 9, titulo: "Problema 9", texto: "Determine o resto de 7¹⁰⁰ mod 6." },
+        { id: 10, titulo: "Problema 10", texto: "Prove que existem infinitos primos." }
+    ];
+
+    const feitos = JSON.parse(localStorage.getItem("feitos")) || {};
+    let atual = null;
+
+    const lista = document.getElementById("lista");
+    const titulo = document.getElementById("titulo");
+    const enunciado = document.getElementById("enunciado");
+    const feitoBtn = document.getElementById("feitoBtn");
+
+    function renderLista() {
+        lista.innerHTML = "";
+        problemas.forEach(p => {
+            const btn = document.createElement("button");
+            btn.textContent = p.titulo;
+            if (feitos[p.id]) btn.classList.add("feito");
+
+            btn.onclick = () => abrirProblema(p);
+            lista.appendChild(btn);
+        });
+    }
+
+    function abrirProblema(p) {
+        atual = p;
+        titulo.textContent = p.titulo;
+        enunciado.textContent = p.texto;
+        feitoBtn.style.display = "inline-block";
+    }
+
+    feitoBtn.onclick = () => {
+        feitos[atual.id] = true;
+        localStorage.setItem("feitos", JSON.stringify(feitos));
+        renderLista();
+    };
+
+    renderLista();
+</script>
+
 </body>
 </html>
